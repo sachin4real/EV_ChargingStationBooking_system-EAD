@@ -31,12 +31,23 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
             return Ok(new { token, role = user.Role, username = user.Username });
         }
 
-        /// <summary> Register a staff user (BACKOFFICE only can create staff) </summary>
-        [HttpPost("register/staff")]
+        // POST /api/auth/register/backoffice  (BACKOFFICE can create another BACKOFFICE)
+        [HttpPost("register/backoffice")]
         [Authorize(Roles = Role.Backoffice)]
-        public async Task<ActionResult> RegisterStaff([FromBody] RegisterStaffDto dto)
+        public async Task<ActionResult> RegisterBackoffice([FromBody] RegisterStaffDto dto)
         {
-            var u = await _auth.RegisterStaffAsync(dto);
+            var forced = new RegisterStaffDto { Email = dto.Email, Password = dto.Password, Role = Role.Backoffice };
+            var u = await _auth.RegisterStaffAsync(forced);
+            return CreatedAtAction(nameof(Me), new { }, new { u.Username, u.Role });
+        }
+
+        // POST /api/auth/register/operator  (BACKOFFICE creates OPERATOR)
+        [HttpPost("register/operator")]
+        [Authorize(Roles = Role.Backoffice)]
+        public async Task<ActionResult> RegisterOperator([FromBody] RegisterStaffDto dto)
+        {
+            var forced = new RegisterStaffDto { Email = dto.Email, Password = dto.Password, Role = Role.Operator };
+            var u = await _auth.RegisterStaffAsync(forced);
             return CreatedAtAction(nameof(Me), new { }, new { u.Username, u.Role });
         }
 
