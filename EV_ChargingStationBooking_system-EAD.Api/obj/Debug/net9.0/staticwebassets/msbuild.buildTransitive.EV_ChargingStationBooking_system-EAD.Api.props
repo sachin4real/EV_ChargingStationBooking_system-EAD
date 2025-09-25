@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="../buildMultiTargeting/EV_ChargingStationBooking_system-EAD.Api.props" />
+</Project>

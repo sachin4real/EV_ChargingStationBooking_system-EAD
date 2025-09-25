@@ -1,0 +1,6 @@
+@EV_ChargingStationBooking_system_EAD.Api_HostAddress = http://localhost:5259
+
+GET {{EV_ChargingStationBooking_system_EAD.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

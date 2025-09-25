@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "nWMjJEICDWZETmVHQAb4DbNobn1YoqfoNBxWB45VvzY=",
+  "Source": "EV_ChargingStationBooking_system-EAD.Api",
+  "BasePath": "_content/EV_ChargingStationBooking_system-EAD.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
