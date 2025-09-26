@@ -11,7 +11,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Dtos
     {
         public string Email { get; set; } = default!;
         public string Password { get; set; } = default!;
-        public string Role { get; set; } = default!;
+        public string? Role { get; set; } = default!;
     }    
 
     public sealed class RegisterOwnerDto
