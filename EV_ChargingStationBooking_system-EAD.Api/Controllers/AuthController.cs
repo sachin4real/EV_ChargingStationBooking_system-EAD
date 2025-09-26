@@ -24,6 +24,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
         /// <summary> Login for all roles (username = email for staff, NIC for owners) </summary>
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult> Login([FromBody] LoginDto dto)
         {
             var user = await _auth.ValidateCredentialsAsync(dto.Username, dto.Password);

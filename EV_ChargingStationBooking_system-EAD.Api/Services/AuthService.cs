@@ -1,4 +1,4 @@
-
+using BCrypt.Net;
 using EV_ChargingStationBooking_system_EAD.Api.Domain;
 using EV_ChargingStationBooking_system_EAD.Api.Domain.Entities;
 using EV_ChargingStationBooking_system_EAD.Api.Dtos;
@@ -17,11 +17,19 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
     public sealed class AuthService : IAuthService
     {
         private readonly IAuthUserRepository _repo;
+
         public AuthService(IAuthUserRepository repo) => _repo = repo;
+
         public async Task<AuthUser> RegisterStaffAsync(RegisterStaffDto dto)
         {
-            if (dto.Role != Role.Backoffice && dto.Role != Role.Operator)
-                throw new InvalidOperationException("Invalid role for staff.");
+            // Normalize incoming role to our Title-case constants
+            var reqRole = (dto.Role ?? "").Trim();
+            string normalized = reqRole.Equals(Role.Backoffice, StringComparison.OrdinalIgnoreCase) ? Role.Backoffice
+                               : reqRole.Equals(Role.Operator,   StringComparison.OrdinalIgnoreCase) ? Role.Operator
+                               : "";
+
+            if (string.IsNullOrEmpty(normalized))
+                throw new InvalidOperationException("Invalid role. Use Backoffice or Operator.");
 
             var existing = await _repo.GetByUsernameAsync(dto.Email);
             if (existing != null) throw new InvalidOperationException("User exists.");
@@ -32,7 +40,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
                 Id = Guid.NewGuid().ToString("N"),
                 Username = dto.Email,
                 PasswordHash = hash,
-                Role = dto.Role
+                Role = normalized // store Title-case
             };
             await _repo.CreateAsync(u);
             return u;
@@ -43,13 +51,12 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             var existing = await _repo.GetByUsernameAsync(dto.Nic);
             if (existing != null) throw new InvalidOperationException("Owner user exists.");
 
-            var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             var u = new AuthUser
             {
                 Id = Guid.NewGuid().ToString("N"),
-                Username = dto.Nic,                 // login with NIC
-                PasswordHash = hash,
-                Role = Role.EvOwner,
+                Username = dto.Nic, // NIC = login
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = Role.EvOwner, // Title-case
                 OwnerNic = dto.Nic
             };
             await _repo.CreateAsync(u);
@@ -60,7 +67,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var user = await _repo.GetByUsernameAsync(username) ?? throw new UnauthorizedAccessException("Invalid credentials.");
             if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Invalid Credentials.");
+                throw new UnauthorizedAccessException("Invalid credentials.");
             return user;
         }
 
@@ -68,13 +75,12 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             if (await _repo.CountBackofficeAsync() == 0)
             {
-                var hash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
                 var u = new AuthUser
                 {
                     Id = Guid.NewGuid().ToString("N"),
                     Username = "admin@ev.local",
-                    PasswordHash = hash,
-                    Role = Role.Backoffice
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    Role = Role.Backoffice // Title-case
                 };
                 await _repo.CreateAsync(u);
             }
