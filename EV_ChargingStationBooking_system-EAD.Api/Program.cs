@@ -42,6 +42,7 @@ builder.Services.AddSingleton<MongoContext>();
 builder.Services.AddScoped<IAuthUserRepository, AuthUserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IMyProfileService, MyProfileService>();
 
 // For dev you can AllowAnyOrigin; for stricter:
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>

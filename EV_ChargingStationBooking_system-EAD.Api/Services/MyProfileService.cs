@@ -1,0 +1,69 @@
+
+using EV_ChargingStationBooking_system_EAD.Api.Domain;
+using EV_ChargingStationBooking_system_EAD.Api.Dtos;
+using EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories;
+
+namespace EV_ChargingStationBooking_system_EAD.Api.Services
+{
+    public interface IMyProfileService
+    {
+        Task<MyProfileDto> GetAsync(string userId);
+        Task<(MyProfileDto profile, bool emailChanged)> UpdateAsync(string userId, MyProfileUpdateDto dto);
+        Task ChangePasswordAsync(string userId, ChangePasswordDto dto);
+    }
+
+    public sealed class MyProfileService : IMyProfileService
+    {
+        private readonly IAuthUserRepository _users;
+        public MyProfileService(IAuthUserRepository users) => _users = users;
+        public async Task<MyProfileDto> GetAsync(String userId)
+        {
+            var u = await _users.GetByIdAsync(userId) ?? throw new KeyNotFoundException("User not found.");
+            return new MyProfileDto
+            {
+                Username = u.Username,
+                FullName = u.FullName,
+                Phone = u.Phone,
+                Role = u.Role
+            };
+        }
+
+        public async Task<(MyProfileDto profile, bool emailChanged)> UpdateAsync(string userId, MyProfileUpdateDto dto)
+        {
+            var u = await _users.GetByIdAsync(userId) ?? throw new KeyNotFoundException("User Not Found.");
+            if (u.Role != Role.Backoffice && u.Role != Role.Operator)
+                throw new UnauthorizedAccessException("Only Staff can edit this Profile.");
+            var emailChanged = !string.Equals(u.Username, dto.Email, StringComparison.OrdinalIgnoreCase);
+            if (emailChanged)
+            {
+                var inUse = await _users.EmailInUseAsync(dto.Email, u.Id);
+                if (inUse) throw new InvalidOperationException("Email already in use.");
+                u.Username = dto.Email.Trim();
+            }
+            u.FullName = dto.FullName?.Trim();
+            u.Phone = dto.Phone?.Trim();
+
+            await _users.UpdateAsync(u);
+
+            return (new MyProfileDto
+            {
+                Username = u.Username,
+                FullName = u.FullName,
+                Phone = u.Phone,
+                Role = u.Role
+            }, emailChanged);
+        }
+
+        public async Task ChangePasswordAsync(string userId, ChangePasswordDto dto)
+        {
+            var u = await _users.GetByIdAsync(userId) ?? throw new KeyNotFoundException("User Not Found.");
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, u.PasswordHash))
+                throw new UnauthorizedAccessException("Current password is incorrect.");
+
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 8)
+                throw new InvalidOperationException("New Password must be at least 8 characters.");
+            u.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _users.UpdateAsync(u);
+        }
+    }
+}

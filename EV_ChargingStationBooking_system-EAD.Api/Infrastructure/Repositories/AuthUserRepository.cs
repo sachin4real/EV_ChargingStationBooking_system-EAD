@@ -10,6 +10,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
         Task<AuthUser?> GetByIdAsync(string id);
         Task CreateAsync(AuthUser u);
         Task<long> CountBackofficeAsync();
+
+        Task UpdateAsync(AuthUser u);
+        Task<bool> EmailInUseAsync(string email, string excludeUserId);
     }
 
     public sealed class AuthUserRepository : IAuthUserRepository
@@ -28,5 +31,14 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
 
         public async Task<long> CountBackofficeAsync() => await _col.CountDocumentsAsync(x =>
         x.Role == Domain.Role.Backoffice);
+
+        public Task UpdateAsync(AuthUser u)
+        => _col.ReplaceOneAsync(x => x.Id == u.Id, u, new ReplaceOptions { IsUpsert = false });
+
+        public async Task<bool> EmailInUseAsync(string email, string excludeUserId)
+    {
+        var count = await _col.CountDocumentsAsync(x => x.Username == email && x.Id != excludeUserId);
+        return count > 0;
+    }
     }
 }
