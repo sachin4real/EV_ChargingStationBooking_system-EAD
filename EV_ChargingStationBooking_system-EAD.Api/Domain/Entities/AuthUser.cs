@@ -10,5 +10,8 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Domain.Entities
 
         public string? OwnerNic { get; set; }
 
+        // add this:
+        public bool IsActive { get; set; } = true;
+
     }
 }

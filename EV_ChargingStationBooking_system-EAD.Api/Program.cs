@@ -1,13 +1,14 @@
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Mongo;
-using EV_ChargingStationBooking_system_EAD.Api.Common;
-using EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories;
-using EV_ChargingStationBooking_system_EAD.Api.Services;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
+
+using EV_ChargingStationBooking_system_EAD.Api.Common;
+using EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Mongo;
+using EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories;
+using EV_ChargingStationBooking_system_EAD.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,11 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
         Description = "Type **Bearer {token}**",
-        Reference = new OpenApiReference { Id = JwtBearerDefaults.AuthenticationScheme, Type = ReferenceType.SecurityScheme }
+        Reference = new OpenApiReference
+        {
+            Id = JwtBearerDefaults.AuthenticationScheme,
+            Type = ReferenceType.SecurityScheme
+        }
     };
     c.AddSecurityDefinition(jwtScheme.Reference.Id, jwtScheme);
     c.AddSecurityRequirement(new OpenApiSecurityRequirement { { jwtScheme, Array.Empty<string>() } });
@@ -40,12 +45,17 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 // ---------------- Mongo & DI ----------------
 builder.Services.AddSingleton<MongoContext>();
 builder.Services.AddScoped<IAuthUserRepository, AuthUserRepository>();
+builder.Services.AddScoped<IOperatorRepository, OperatorRepository>();
+builder.Services.AddScoped<IOwnerRepository, OwnerRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
-// For dev you can AllowAnyOrigin; for stricter:
+// one-time index creator
+builder.Services.AddSingleton<IndexInitializer>();
+
+// ---------------- CORS (dev) ----------------
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
-    p.WithOrigins("http://localhost:5173") // Vite default port
+    p.WithOrigins("http://localhost:5173")
      .AllowAnyHeader()
      .AllowAnyMethod()
 ));
@@ -55,7 +65,7 @@ var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()!;
 if (string.IsNullOrWhiteSpace(jwt.Key) || jwt.Key.Length < 32)
     throw new InvalidOperationException("Jwt:Key must be a long random string (>=32 chars)");
 
-var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key));
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key));
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -66,31 +76,37 @@ builder.Services
             ValidateIssuer = true,
             ValidIssuer = jwt.Issuer,
 
-            ValidateAudience = false, // <- important (was true before)
+            // Allow any audience unless you need to lock it down
+            ValidateAudience = false,
 
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = key,
+            IssuerSigningKey = signingKey,
 
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1),
 
-            RoleClaimType = ClaimTypes.Role,                      
-            NameClaimType = JwtRegisteredClaimNames.UniqueName     
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = JwtRegisteredClaimNames.UniqueName
         };
-
     });
 
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// Seed an initial Backoffice account
+// ---------- one-time setup (indexes, seed) ----------
 using (var scope = app.Services.CreateScope())
 {
+    // ensure Mongo indexes
+    var idx = scope.ServiceProvider.GetRequiredService<IndexInitializer>();
+    await idx.EnsureAsync();
+
+    // seed initial Backoffice
     var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
     await auth.EnsureSeedBackofficeAsync();
 }
 
+// ---------------- Pipeline ----------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -99,9 +115,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ---------- Middleware ORDER matters ----------
 app.UseCors("dev");
-app.UseAuthentication();   // <-- MUST be before UseAuthorization
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/", () => Results.Redirect("/swagger", false));
