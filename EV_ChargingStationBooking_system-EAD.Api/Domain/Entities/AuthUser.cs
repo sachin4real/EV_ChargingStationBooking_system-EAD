@@ -1,5 +1,8 @@
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace EV_ChargingStationBooking_system_EAD.Api.Domain.Entities
 {
+    [BsonIgnoreExtraElements]
     public sealed class AuthUser
     {
         public string Id { get; set; } = default!;
