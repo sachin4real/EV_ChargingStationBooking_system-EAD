@@ -1,24 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\projects\\EV_ChargingStationBooking_system-EAD\\EV_ChargingStationBooking_system-EAD.Api\\EV_ChargingStationBooking_system-EAD.Api.csproj": {}
+    "/Users/bhanukafernando/Documents/EV_ChargingStationBooking_system-EAD/EV_ChargingStationBooking_system-EAD.Api/EV_ChargingStationBooking_system-EAD.Api.csproj": {}
   },
   "projects": {
-    "C:\\projects\\EV_ChargingStationBooking_system-EAD\\EV_ChargingStationBooking_system-EAD.Api\\EV_ChargingStationBooking_system-EAD.Api.csproj": {
+    "/Users/bhanukafernando/Documents/EV_ChargingStationBooking_system-EAD/EV_ChargingStationBooking_system-EAD.Api/EV_ChargingStationBooking_system-EAD.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\projects\\EV_ChargingStationBooking_system-EAD\\EV_ChargingStationBooking_system-EAD.Api\\EV_ChargingStationBooking_system-EAD.Api.csproj",
+        "projectUniqueName": "/Users/bhanukafernando/Documents/EV_ChargingStationBooking_system-EAD/EV_ChargingStationBooking_system-EAD.Api/EV_ChargingStationBooking_system-EAD.Api.csproj",
         "projectName": "EV_ChargingStationBooking_system-EAD.Api",
-        "projectPath": "C:\\projects\\EV_ChargingStationBooking_system-EAD\\EV_ChargingStationBooking_system-EAD.Api\\EV_ChargingStationBooking_system-EAD.Api.csproj",
-        "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-        "outputPath": "C:\\projects\\EV_ChargingStationBooking_system-EAD\\EV_ChargingStationBooking_system-EAD.Api\\obj\\",
+        "projectPath": "/Users/bhanukafernando/Documents/EV_ChargingStationBooking_system-EAD/EV_ChargingStationBooking_system-EAD.Api/EV_ChargingStationBooking_system-EAD.Api.csproj",
+        "packagesPath": "/Users/bhanukafernando/.nuget/packages/",
+        "outputPath": "/Users/bhanukafernando/Documents/EV_ChargingStationBooking_system-EAD/EV_ChargingStationBooking_system-EAD.Api/obj/",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-        ],
         "configFilePaths": [
-          "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config"
+          "/Users/bhanukafernando/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
@@ -40,9 +36,9 @@
         "restoreAuditProperties": {
           "enableAudit": "true",
           "auditLevel": "low",
-          "auditMode": "direct"
+          "auditMode": "all"
         },
-        "SdkAnalysisLevel": "9.0.300"
+        "SdkAnalysisLevel": "9.0.100"
       },
       "frameworks": {
         "net9.0": {
@@ -92,7 +88,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.100/PortableRuntimeIdentifierGraph.json"
         }
       }
     }
