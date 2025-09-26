@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using EV_ChargingStationBooking_system_EAD.Api.Common;
+using EV_ChargingStationBooking_system_EAD.Api.Domain; // for Role constants
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -9,7 +10,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 {
     public interface IJwtTokenService
     {
-        // username is email for staff, NIC for owners; role is Title-case (Backoffice|Operator|EvOwner)
+        // userId: stable ID for the subject (use NIC for owners, GUID/DB id for staff)
+        // username: email for staff, email (or NIC) for owners (used for display)
+        // role: one of Role.Backoffice / Role.Operator / Role.EvOwner (constants)
         string CreateToken(string userId, string username, string role);
     }
 
@@ -31,12 +34,12 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
         public string CreateToken(string userId, string username, string role)
         {
-            // Normalize role to Title-case for the token
-            string normalizedRole = role switch
+            // Map role to EXACT constants your policies use
+            var roleForClaim = role switch
             {
-                "BACKOFFICE" or "backoffice" or "Backoffice" => "Backoffice",
-                "OPERATOR"   or "operator"   or "Operator"   => "Operator",
-                "EV_OWNER"   or "ev_owner"   or "EvOwner"    => "EvOwner",
+                "BACKOFFICE" or "backoffice" or "Backoffice" => Role.Backoffice, // "BACKOFFICE"
+                "OPERATOR"   or "operator"   or "Operator"   => Role.Operator,   // "OPERATOR"
+                "EV_OWNER"   or "ev_owner"   or "EvOwner"    => Role.EvOwner,    // "EV_OWNER"
                 _ => role
             };
 
@@ -44,24 +47,32 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
             var claims = new List<Claim>
             {
-                // Standard subject should be the stable user id
+                // Subject = stable id (for owners pass NIC here!)
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
 
-                // App-friendly names (your Me() reads "unique_name")
+                // Names for convenience
                 new Claim(JwtRegisteredClaimNames.UniqueName, username),
                 new Claim(ClaimTypes.Name, username),
 
-                // Role claim recognized by ASP.NET Core
-                new Claim(ClaimTypes.Role, normalizedRole),
+                // Role that matches [Authorize(Roles = "...")]
+                new Claim(ClaimTypes.Role, roleForClaim),
 
-                // Good practice metadata
+                // Helpful metadata
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
                 new Claim(JwtRegisteredClaimNames.Iat, Epoch(now).ToString(), ClaimValueTypes.Integer64)
             };
 
+            // If this is an EV owner, also include explicit "nic" claim
+            if (roleForClaim == Role.EvOwner)
+            {
+                claims.Add(new Claim("nic", userId));
+                // also set NameIdentifier to the same for convenience
+                claims.Add(new Claim(ClaimTypes.NameIdentifier, userId));
+            }
+
             var token = new JwtSecurityToken(
                 issuer: _opt.Issuer,
-                audience: string.IsNullOrWhiteSpace(_opt.Audience) ? null : _opt.Audience,
+                audience: _opt.Audience,             // <-- make sure ValidateAudience matches this
                 claims: claims,
                 notBefore: now,
                 expires: now.AddMinutes(_opt.ExpiresMinutes <= 0 ? 60 : _opt.ExpiresMinutes),

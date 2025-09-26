@@ -43,6 +43,9 @@ builder.Services.AddScoped<IAuthUserRepository, AuthUserRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IMyProfileService, MyProfileService>();
+builder.Services.AddScoped<IEvOwnerRepository, EvOwnerRepository>();
+builder.Services.AddScoped<IEvOwnerService, EvOwnerService>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>(); 
 
 // For dev you can AllowAnyOrigin; for stricter:
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
@@ -90,6 +93,9 @@ using (var scope = app.Services.CreateScope())
 {
     var auth = scope.ServiceProvider.GetRequiredService<IAuthService>();
     await auth.EnsureSeedBackofficeAsync();
+
+    var ownersRepo = scope.ServiceProvider.GetRequiredService<IEvOwnerRepository>();
+    await ownersRepo.CreateIndexesAsync();
 }
 
 if (app.Environment.IsDevelopment())
