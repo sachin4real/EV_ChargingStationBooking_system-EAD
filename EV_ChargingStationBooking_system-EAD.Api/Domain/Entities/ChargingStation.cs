@@ -8,6 +8,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Domain.Entities
         public string Type { get; set; } = "AC";        // "AC" | "DC"
         public int TotalSlots { get; set; }             // physical connectors or bays
 
+        public string Location { get; set; } = "";
+
+
         public double Lat { get; set; }                 // location
         public double Lng { get; set; }
 
