@@ -27,6 +27,8 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
         public async Task<StationViewDto> CreateAsync(StationCreateDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Name)) throw new InvalidOperationException("Name is required.");
+            if (dto.TotalSlots < 1) throw new InvalidOperationException("TotalSlots must be >= 1.");
             var s = new ChargingStation
             {
                 Name = dto.Name.Trim(),
@@ -44,9 +46,14 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
 
+             if (string.IsNullOrWhiteSpace(dto.Name)) throw new InvalidOperationException("Name is required.");
+            if (dto.TotalSlots < 1) throw new InvalidOperationException("TotalSlots must be >= 1.");
+
+
             s.Name = dto.Name.Trim();
             s.Type = (dto.Type ?? "AC").ToUpperInvariant() == "DC" ? "DC" : "AC";
             s.TotalSlots = Math.Clamp(dto.TotalSlots, 1, 200);
+            s.Location = dto.Location?.Trim() ?? "";
             s.Lat = dto.Lat;
             s.Lng = dto.Lng;
 
@@ -123,6 +130,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             Name = s.Name,
             Type = s.Type,
             TotalSlots = s.TotalSlots,
+            Location = s.Location,
             Lat = s.Lat,
             Lng = s.Lng,
             IsActive = s.IsActive,
