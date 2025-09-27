@@ -15,7 +15,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Dtos
         public string Name { get; set; } = default!;
         public string Type { get; set; } = "AC";
         public int TotalSlots { get; set; }
-         public string Location { get; set; } = "";
+        public string Location { get; set; } = "";
         public double Lat { get; set; }
         public double Lng { get; set; }
     }

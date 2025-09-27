@@ -25,15 +25,29 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             _bookings = bookings;
         }
 
+        // ---- helpers ----
+        private static void ValidateLatLng(double lat, double lng)
+        {
+            if (lat < -90 || lat > 90)   throw new InvalidOperationException("Latitude must be between -90 and 90.");
+            if (lng < -180 || lng > 180) throw new InvalidOperationException("Longitude must be between -180 and 180.");
+        }
+
+        private static string NormalizeType(string? t)
+            => (t ?? "AC").Trim().ToUpperInvariant() == "DC" ? "DC" : "AC";
+
+        // ---- CRUD ----
         public async Task<StationViewDto> CreateAsync(StationCreateDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.Name)) throw new InvalidOperationException("Name is required.");
             if (dto.TotalSlots < 1) throw new InvalidOperationException("TotalSlots must be >= 1.");
+            ValidateLatLng(dto.Lat, dto.Lng);
+
             var s = new ChargingStation
             {
                 Name = dto.Name.Trim(),
-                Type = (dto.Type ?? "AC").ToUpperInvariant() == "DC" ? "DC" : "AC",
+                Type = NormalizeType(dto.Type),
                 TotalSlots = Math.Clamp(dto.TotalSlots, 1, 200),
+                Location = dto.Location?.Trim() ?? "",   // ← you were missing this
                 Lat = dto.Lat,
                 Lng = dto.Lng,
                 IsActive = true
@@ -46,12 +60,12 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
 
-             if (string.IsNullOrWhiteSpace(dto.Name)) throw new InvalidOperationException("Name is required.");
+            if (string.IsNullOrWhiteSpace(dto.Name)) throw new InvalidOperationException("Name is required.");
             if (dto.TotalSlots < 1) throw new InvalidOperationException("TotalSlots must be >= 1.");
-
+            ValidateLatLng(dto.Lat, dto.Lng);
 
             s.Name = dto.Name.Trim();
-            s.Type = (dto.Type ?? "AC").ToUpperInvariant() == "DC" ? "DC" : "AC";
+            s.Type = NormalizeType(dto.Type);
             s.TotalSlots = Math.Clamp(dto.TotalSlots, 1, 200);
             s.Location = dto.Location?.Trim() ?? "";
             s.Lat = dto.Lat;
@@ -65,7 +79,6 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
 
-            // Validate each day
             foreach (var d in dto.Days)
             {
                 if (string.IsNullOrWhiteSpace(d.Date)) throw new InvalidOperationException("Date is required.");
@@ -83,7 +96,6 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             }
             else
             {
-                // merge by date
                 var map = s.Schedule.ToDictionary(x => x.Date, x => x);
                 foreach (var incoming in dto.Days)
                 {
@@ -104,7 +116,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
 
-            // Rule: cannot deactivate if there are active bookings (Pending or Approved)
+            // cannot deactivate if there are active bookings (Pending/Approved)
             var hasActive = await _bookings.ExistsActiveForStationAsync(id);
             if (hasActive)
                 throw new InvalidOperationException("Station cannot be deactivated while it has active bookings.");
