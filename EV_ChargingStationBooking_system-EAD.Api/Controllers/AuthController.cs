@@ -28,7 +28,13 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
         public async Task<ActionResult> Login([FromBody] LoginDto dto)
         {
             var user = await _auth.ValidateCredentialsAsync(dto.Username, dto.Password);
-            var token = _jwt.CreateToken(user.Id, user.Username, user.Role);
+
+            // IMPORTANT: owners should get NIC as "sub"; staff get DB Id as "sub".
+            var subject = user.Role == Role.EvOwner
+                ? (user.OwnerNic ?? user.Username)  // NIC
+                : user.Id;                           // GUID/DB id for staff
+
+            var token = _jwt.CreateToken(subject, user.Username, user.Role);
             return Ok(new { token, role = user.Role, username = user.Username });
         }
 

@@ -17,8 +17,13 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
     public sealed class AuthService : IAuthService
     {
         private readonly IAuthUserRepository _repo;
+        private readonly IEvOwnerRepository _owners;
 
-        public AuthService(IAuthUserRepository repo) => _repo = repo;
+        public AuthService(IAuthUserRepository repo, IEvOwnerRepository owners)
+        {
+            _repo = repo;
+            _owners = owners;
+        } 
 
         public async Task<AuthUser> RegisterStaffAsync(RegisterStaffDto dto)
         {
@@ -48,19 +53,43 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
         public async Task<AuthUser> RegisterOwnerAsync(RegisterOwnerDto dto)
         {
-            var existing = await _repo.GetByUsernameAsync(dto.Nic);
-            if (existing != null) throw new InvalidOperationException("Owner user exists.");
+            var nic   = dto.Nic.Trim();
+            var email = dto.Email.Trim().ToLowerInvariant();
+            var name  = dto.FullName?.Trim() ?? string.Empty;
+            var phone = dto.Phone?.Trim() ?? string.Empty;
 
-            var u = new AuthUser
+            
+            if (await _repo.GetByUsernameAsync(nic) is not null)
+                throw new InvalidOperationException("NIC is already registered.");
+            if (await _owners.ExistsNicAsync(nic))
+                throw new InvalidOperationException("NIC is already registered.");
+            if (await _owners.ExistsEmailAsync(email))
+                throw new InvalidOperationException("Email is already in use.");
+
+            // Create AUTH user (login = NIC)
+            var user = new AuthUser
             {
                 Id = Guid.NewGuid().ToString("N"),
-                Username = dto.Nic, // NIC = login
+                Username = nic,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = Role.EvOwner, // Title-case
-                OwnerNic = dto.Nic
+                Role = Role.EvOwner,  
+                OwnerNic = nic,
+                FullName = name,
+                Phone = phone
             };
-            await _repo.CreateAsync(u);
-            return u;
+            await _repo.CreateAsync(user);
+
+            
+            await _owners.CreateAsync(new EvOwner
+            {
+                Nic = nic,
+                FullName = name,
+                Email = email,
+                Phone = phone,
+                IsActive = true
+            });
+
+            return user;
         }
 
         public async Task<AuthUser> ValidateCredentialsAsync(string username, string password)
