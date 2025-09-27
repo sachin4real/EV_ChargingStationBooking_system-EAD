@@ -46,6 +46,8 @@ builder.Services.AddScoped<IMyProfileService, MyProfileService>();
 builder.Services.AddScoped<IEvOwnerRepository, EvOwnerRepository>();
 builder.Services.AddScoped<IEvOwnerService, EvOwnerService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>(); 
+builder.Services.AddScoped<IChargingStationRepository, ChargingStationRepository>();
+builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 
 // For dev you can AllowAnyOrigin; for stricter:
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
@@ -96,6 +98,9 @@ using (var scope = app.Services.CreateScope())
 
     var ownersRepo = scope.ServiceProvider.GetRequiredService<IEvOwnerRepository>();
     await ownersRepo.CreateIndexesAsync();
+
+    var stationRepo = scope.ServiceProvider.GetRequiredService<IChargingStationRepository>();
+    await stationRepo.CreateIndexesAsync();
 }
 
 if (app.Environment.IsDevelopment())
