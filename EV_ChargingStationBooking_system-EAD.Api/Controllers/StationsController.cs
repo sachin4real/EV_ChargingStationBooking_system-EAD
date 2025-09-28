@@ -38,6 +38,14 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
         public async Task<ActionResult> GetById([FromRoute] string id)
             => Ok(await _svc.GetAsync(id));
 
+        [HttpPatch("{id}/activate")]
+        [Authorize(Roles = Role.Backoffice)]
+        public async Task<ActionResult> Activate(string id)
+        {
+            await _svc.ActivateAsync(id);
+            return NoContent(); // 204
+        }
+
         // PUT /stations/{id} → Backoffice
         [HttpPut("{id}")]
         [Authorize(Roles = $"{Role.Backoffice}")]

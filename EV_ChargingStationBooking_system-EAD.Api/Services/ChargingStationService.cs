@@ -10,6 +10,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         Task<StationViewDto> UpdateAsync(string id, StationUpdateDto dto);
         Task<StationViewDto> UpdateScheduleAsync(string id, StationScheduleUpdateDto dto);
         Task DeactivateAsync(string id);   // enforce: deny if active bookings
+        Task ActivateAsync(string id);
         Task<(IReadOnlyList<StationViewDto> items, long total)> ListAsync(string? q, bool? isActive, int page, int pageSize);
         Task<StationViewDto> GetAsync(string id);
     }
@@ -28,7 +29,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         // ---- helpers ----
         private static void ValidateLatLng(double lat, double lng)
         {
-            if (lat < -90 || lat > 90)   throw new InvalidOperationException("Latitude must be between -90 and 90.");
+            if (lat < -90 || lat > 90) throw new InvalidOperationException("Latitude must be between -90 and 90.");
             if (lng < -180 || lng > 180) throw new InvalidOperationException("Longitude must be between -180 and 180.");
         }
 
@@ -110,6 +111,13 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
             await _stations.UpdateAsync(s);
             return Map(s);
+        }
+
+        public async Task ActivateAsync(string id)
+        {
+            var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
+            s.IsActive = true;                            // no special rule on activation
+            await _stations.UpdateAsync(s);
         }
 
         public async Task DeactivateAsync(string id)
