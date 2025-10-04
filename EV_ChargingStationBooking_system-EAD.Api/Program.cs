@@ -36,6 +36,8 @@ builder.Services.AddControllers().AddNewtonsoftJson();
 // ---------------- Options ----------------
 builder.Services.Configure<MongoOptions>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<QrOptions>(builder.Configuration.GetSection("Qr"));
+
 
 // ---------------- Mongo & DI ----------------
 builder.Services.AddSingleton<MongoContext>();
