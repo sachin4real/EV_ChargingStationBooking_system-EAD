@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using EV_ChargingStationBooking_system_EAD.Api.Domain.Entities;
 using EV_ChargingStationBooking_system_EAD.Api.Dtos;
 using EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories;
@@ -13,6 +17,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         Task ActivateAsync(string id);
         Task<(IReadOnlyList<StationViewDto> items, long total)> ListAsync(string? q, bool? isActive, int page, int pageSize);
         Task<StationViewDto> GetAsync(string id);
+
+        // NEW for mobile
+        Task<IReadOnlyList<NearbyStationDto>> NearbyAsync(double lat, double lng, double radiusKm);
     }
 
     public sealed class ChargingStationService : IChargingStationService
@@ -48,11 +55,12 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
                 Name = dto.Name.Trim(),
                 Type = NormalizeType(dto.Type),
                 TotalSlots = Math.Clamp(dto.TotalSlots, 1, 200),
-                Location = dto.Location?.Trim() ?? "",   // ← you were missing this
+                Location = dto.Location?.Trim() ?? "",
                 Lat = dto.Lat,
                 Lng = dto.Lng,
                 IsActive = true
             };
+
             await _stations.CreateAsync(s);
             return Map(s);
         }
@@ -116,7 +124,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         public async Task ActivateAsync(string id)
         {
             var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
-            s.IsActive = true;                            // no special rule on activation
+            s.IsActive = true; // no restriction to activate
             await _stations.UpdateAsync(s);
         }
 
@@ -124,7 +132,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var s = await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found.");
 
-            // cannot deactivate if there are active bookings (Pending/Approved)
+            // cannot deactivate if there are active bookings (Pending/Approved and not finished)
             var hasActive = await _bookings.ExistsActiveForStationAsync(id);
             if (hasActive)
                 throw new InvalidOperationException("Station cannot be deactivated while it has active bookings.");
@@ -144,6 +152,54 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         public async Task<StationViewDto> GetAsync(string id)
             => Map(await _stations.GetAsync(id) ?? throw new KeyNotFoundException("Station not found."));
 
+        // ---- Nearby (Haversine) ----
+        public async Task<IReadOnlyList<NearbyStationDto>> NearbyAsync(double lat, double lng, double radiusKm)
+        {
+            // Validate input
+            ValidateLatLng(lat, lng);
+            if (radiusKm <= 0) radiusKm = 5;
+
+            static double ToRad(double d) => d * Math.PI / 180.0;
+            const double R = 6371.0; // km
+            double φ1 = ToRad(lat), λ1 = ToRad(lng);
+
+            var items = await _stations.ListAllActiveAsync();
+            var res = new List<NearbyStationDto>(items.Count);
+
+            foreach (var s in items)
+            {
+                // skip stations with missing coordinates
+                if (double.IsNaN(s.Lat) || double.IsNaN(s.Lng)) continue;
+
+                double φ2 = ToRad(s.Lat), λ2 = ToRad(s.Lng);
+                double dφ = φ2 - φ1, dλ = λ2 - λ1;
+
+                // Haversine
+                double a = Math.Sin(dφ / 2) * Math.Sin(dφ / 2) +
+                           Math.Cos(φ1) * Math.Cos(φ2) * Math.Sin(dλ / 2) * Math.Sin(dλ / 2);
+                double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+                double d = R * c;
+
+                if (d <= radiusKm)
+                {
+                    res.Add(new NearbyStationDto
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        Type = s.Type,
+                        Location = s.Location,
+                        Lat = s.Lat,
+                        Lng = s.Lng,
+                        IsActive = s.IsActive,
+                        DistanceKm = Math.Round(d, 3)
+                    });
+                }
+            }
+
+            return res.OrderBy(x => x.DistanceKm).ToList();
+        }
+
+        // ---- mapper ----
         private static StationViewDto Map(ChargingStation s) => new()
         {
             Id = s.Id,
