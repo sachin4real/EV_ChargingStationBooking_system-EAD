@@ -56,6 +56,7 @@
 /Users/bhanukafernando/Documents/EV_ChargingStationBooking_system-EAD/EV_ChargingStationBooking_system-EAD.Api/bin/Debug/net9.0/Newtonsoft.Json.Bson.dll
 C:\projects\EV_ChargingStationBooking_system-EAD\EV_ChargingStationBooking_system-EAD.Api\bin\Debug\net9.0\appsettings.Development.json
 C:\projects\EV_ChargingStationBooking_system-EAD\EV_ChargingStationBooking_system-EAD.Api\bin\Debug\net9.0\appsettings.json
+C:\projects\EV_ChargingStationBooking_system-EAD\EV_ChargingStationBooking_system-EAD.Api\bin\Debug\net9.0\appsettings.Production.json
 C:\projects\EV_ChargingStationBooking_system-EAD\EV_ChargingStationBooking_system-EAD.Api\bin\Debug\net9.0\EV_ChargingStationBooking_system-EAD.Api.staticwebassets.endpoints.json
 C:\projects\EV_ChargingStationBooking_system-EAD\EV_ChargingStationBooking_system-EAD.Api\bin\Debug\net9.0\EV_ChargingStationBooking_system-EAD.Api.exe
 C:\projects\EV_ChargingStationBooking_system-EAD\EV_ChargingStationBooking_system-EAD.Api\bin\Debug\net9.0\EV_ChargingStationBooking_system-EAD.Api.deps.json
