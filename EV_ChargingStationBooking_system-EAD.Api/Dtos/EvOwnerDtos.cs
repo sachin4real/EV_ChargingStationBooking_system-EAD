@@ -22,7 +22,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Dtos
         public string? Q { get; set; }
         public bool? IsActive { get; set; }
         public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 20;
+        public int PageSize { get; set; } = 10;
     }
 
     public sealed class EvOwnerViewDto
