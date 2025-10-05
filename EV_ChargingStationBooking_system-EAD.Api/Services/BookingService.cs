@@ -17,6 +17,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         Task<BookingViewDto> FinalizeAsync(string bookingId, string actorUserId); // complete session
         Task<(IReadOnlyList<BookingViewDto> items, long total)> AdminSearchAsync(BookingListQuery q);
         Task<BookingViewDto> GetAsync(string id);
+
+        Task<OwnerDashboardDto> OwnerDashboardAsync(string nicFromToken);
+
     }
 
     public sealed class BookingService : IBookingService
@@ -52,7 +55,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
                 Nic = nic,
                 StationId = station.Id,
                 StartTimeUtc = dto.StartTimeUtc,
-                EndTimeUtc   = dto.EndTimeUtc,
+                EndTimeUtc = dto.EndTimeUtc,
                 Status = BookingStatus.Pending
             };
             await _bookings.CreateAsync(b);
@@ -75,7 +78,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             await EnsureCapacityAsync(station, dto.StartTimeUtc, dto.EndTimeUtc, excludeBookingId: b.Id);
 
             b.StartTimeUtc = dto.StartTimeUtc;
-            b.EndTimeUtc   = dto.EndTimeUtc;
+            b.EndTimeUtc = dto.EndTimeUtc;
             b.Status = BookingStatus.Pending; // revert to pending on change (if you want)
             await _bookings.UpdateAsync(b);
             return Map(b);
@@ -97,7 +100,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             page = Math.Max(1, page);
             pageSize = Math.Clamp(pageSize, 1, 100);
-            var (items, total) = await _bookings.SearchAsync(nic, stationId: null, status: null, futureOnly: null, (page-1)*pageSize, pageSize);
+            var (items, total) = await _bookings.SearchAsync(nic, stationId: null, status: null, futureOnly: null, (page - 1) * pageSize, pageSize);
             return (items.Select(Map).ToList(), total);
         }
 
@@ -132,7 +135,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         {
             var page = Math.Max(1, q.Page);
             var size = Math.Clamp(q.PageSize, 1, 100);
-            var (items, total) = await _bookings.SearchAsync(q.Nic, q.StationId, q.Status, q.FutureOnly, (page-1)*size, size);
+            var (items, total) = await _bookings.SearchAsync(q.Nic, q.StationId, q.Status, q.FutureOnly, (page - 1) * size, size);
             return (items.Select(Map).ToList(), total);
         }
 
@@ -187,5 +190,37 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             CreatedAtUtc = b.CreatedAtUtc,
             UpdatedAtUtc = b.UpdatedAtUtc
         };
+
+        public async Task<OwnerDashboardDto> OwnerDashboardAsync(string nic)
+        {
+            // counts
+            var (future, _) = await _bookings.SearchAsync(nic, null, null, true, 0, 1_000_000);
+            var pending = future.Count(b => b.Status == BookingStatus.Pending);
+            var approved = future.Count(b => b.Status == BookingStatus.Approved);
+
+            // next upcoming (approved preferred, else pending) sorted by StartTimeUtc
+            var next = future
+              .OrderBy(b => b.StartTimeUtc)
+              .FirstOrDefault(b => b.Status == BookingStatus.Approved)
+              ?? future.OrderBy(b => b.StartTimeUtc).FirstOrDefault();
+
+            return new OwnerDashboardDto
+            {
+                Pending = pending,
+                ApprovedFuture = approved,
+                NextBooking = next is null ? null : new BookingViewDto
+                {
+                    Id = next.Id,
+                    Nic = next.Nic,
+                    StationId = next.StationId,
+                    StartTimeUtc = next.StartTimeUtc,
+                    EndTimeUtc = next.EndTimeUtc,
+                    Status = next.Status,
+                    CreatedAtUtc = next.CreatedAtUtc,
+                    UpdatedAtUtc = next.UpdatedAtUtc
+                }
+            };
+        }
+
     }
 }

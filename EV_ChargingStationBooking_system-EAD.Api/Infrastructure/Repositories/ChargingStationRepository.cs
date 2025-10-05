@@ -13,6 +13,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
         Task UpdateAsync(ChargingStation s);
         Task<(IReadOnlyList<ChargingStation> items, long total)>
             ListAsync(string? q, bool? isActive, int skip, int take);
+
+             Task<IReadOnlyList<ChargingStation>> ListAllActiveAsync();
+            
     }
 
     public sealed class ChargingStationRepository : IChargingStationRepository
@@ -36,10 +39,15 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
             await _col.Indexes.CreateManyAsync(models);
         }
 
+        
+
         public Task CreateAsync(ChargingStation s) => _col.InsertOneAsync(s);
 
         public Task<ChargingStation?> GetAsync(string id)
             => _col.Find(x => x.Id == id).FirstOrDefaultAsync();
+        
+ public async Task<IReadOnlyList<ChargingStation>> ListAllActiveAsync()
+        => await _col.Find(s => s.IsActive).ToListAsync();
 
         public Task UpdateAsync(ChargingStation s)
         {
@@ -68,5 +76,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
                                   .ToListAsync();
             return (items, total);
         }
+        
+        
     }
 }

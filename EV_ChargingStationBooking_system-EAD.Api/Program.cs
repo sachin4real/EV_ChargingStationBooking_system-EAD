@@ -36,6 +36,8 @@ builder.Services.AddControllers().AddNewtonsoftJson();
 // ---------------- Options ----------------
 builder.Services.Configure<MongoOptions>(builder.Configuration.GetSection("MongoDb"));
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
+builder.Services.Configure<QrOptions>(builder.Configuration.GetSection("Qr"));
+
 
 // ---------------- Mongo & DI ----------------
 builder.Services.AddSingleton<MongoContext>();
@@ -50,6 +52,8 @@ builder.Services.AddScoped<IChargingStationRepository, ChargingStationRepository
 builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddSingleton<IQrService, QrService>();
+
 
 // For dev you can AllowAnyOrigin; for stricter:
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
