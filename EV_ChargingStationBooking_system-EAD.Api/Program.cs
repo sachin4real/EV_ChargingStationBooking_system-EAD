@@ -53,7 +53,7 @@ builder.Services.AddScoped<IChargingStationService, ChargingStationService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddSingleton<IQrService, QrService>();
-
+builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
 
 // For dev you can AllowAnyOrigin; for stricter:
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
