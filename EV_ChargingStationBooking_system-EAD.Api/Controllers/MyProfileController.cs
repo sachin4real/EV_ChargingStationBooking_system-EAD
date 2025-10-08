@@ -1,4 +1,3 @@
-
 using System.Security.Claims;
 using EV_ChargingStationBooking_system_EAD.Api.Domain;
 using EV_ChargingStationBooking_system_EAD.Api.Dtos;
@@ -10,44 +9,52 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
 {
     [ApiController]
     [Route("api/users/me")]
-    // only backoffice and operator can use web-profile endpoints
-    [Authorize(Roles = $"{Role.Backoffice},{Role.Operator}")]
+    [Authorize(Roles = $"{Role.Backoffice},{Role.Operator},{Role.EvOwner}")]
     public sealed class MyProfileController : ControllerBase
     {
         private readonly IMyProfileService _svc;
         private readonly IJwtTokenService _jwt;
+        private readonly Infrastructure.Repositories.IAuthUserRepository _usersRepo;
 
-        public MyProfileController(IMyProfileService svc, IJwtTokenService jwt)
+        public MyProfileController(
+            IMyProfileService svc,
+            IJwtTokenService jwt,
+            Infrastructure.Repositories.IAuthUserRepository usersRepo)
         {
             _svc = svc;
             _jwt = jwt;
+            _usersRepo = usersRepo;
         }
 
-        private string GetUserIdOrUsernameFromClaims()
+        private string GetUsernameFromClaims()
         {
-            var username = User.FindFirstValue(ClaimTypes.Name)
-                           ?? User.Claims.FirstOrDefault(c => c.Type.EndsWith("unique_name"))?.Value
-                           ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
-                           ?? User.FindFirstValue("sub");
-            return username ?? throw new UnauthorizedAccessException("No username in token.");
+            return User.FindFirstValue(ClaimTypes.Name)
+                ?? User.Claims.FirstOrDefault(c => c.Type.EndsWith("unique_name"))?.Value
+                ?? User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? throw new UnauthorizedAccessException("No username in token.");
         }
 
         [HttpGet("profile")]
-        public async Task<ActionResult> GetProfile([FromServices] EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories.IAuthUserRepository usersRepo)
+        public async Task<ActionResult> GetProfile()
         {
-            var username = GetUserIdOrUsernameFromClaims();
-            var user = await usersRepo.GetByUsernameAsync(username) ?? throw new KeyNotFoundException("User Not FOund");
+            var username = GetUsernameFromClaims();
+            var user = await _usersRepo.GetByUsernameAsync(username)
+                       ?? throw new KeyNotFoundException("User not found.");
             var profile = await _svc.GetAsync(user.Id);
             return Ok(profile);
         }
 
+        /// <summary>
+        /// Update my profile; if 'currentPassword' and 'newPassword' are provided, password is changed in the same call.
+        /// </summary>
         [HttpPut("profile")]
-        public async Task<ActionResult> UpdateProfile(
-            [FromBody] MyProfileUpdateDto dto,
-            [FromServices] EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories.IAuthUserRepository usersRepo)
+        public async Task<ActionResult> UpdateProfile([FromBody] MyProfileUpdateDto dto)
         {
-            var username = GetUserIdOrUsernameFromClaims();
-            var user = await usersRepo.GetByUsernameAsync(username) ?? throw new KeyNotFoundException("User not found.");
+            var username = GetUsernameFromClaims();
+            var user = await _usersRepo.GetByUsernameAsync(username)
+                       ?? throw new KeyNotFoundException("User not found.");
+
             var (profile, emailChanged) = await _svc.UpdateAsync(user.Id, dto);
 
             if (emailChanged)
@@ -57,16 +64,10 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
             }
             return Ok(new { profile });
         }
-        [HttpPut("password")]
-        public async Task<ActionResult> ChangePassword(
-            [FromBody] ChangePasswordDto dto,
-            [FromServices] EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories.IAuthUserRepository usersRepo)
-        {
-            var username = GetUserIdOrUsernameFromClaims();
-            var user = await usersRepo.GetByUsernameAsync(username) ?? throw new KeyNotFoundException("User not found.");
 
-            await _svc.ChangePasswordAsync(user.Id, dto);
-            return NoContent();
-        }
+        // Remove this route, or keep it as obsolete if clients already use it.
+        [Obsolete("Use PUT /api/users/me/profile with currentPassword/newPassword instead.")]
+        [HttpPut("password")]
+        public IActionResult ObsoleteChangePassword() => NotFound();
     }
 }
