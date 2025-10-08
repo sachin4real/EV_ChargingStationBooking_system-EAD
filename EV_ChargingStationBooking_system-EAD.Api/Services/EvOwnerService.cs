@@ -19,6 +19,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         Task<EvOwnerViewDto> SelfGetAsync(string nicFromToken);
         Task<(EvOwnerViewDto profile, bool emailChanged)> SelfUpdateAsync(string nicFromToken, EvOwnerUpdateDto dto);
         Task SelfDeactivateAsync(string nicFromToken);
+
     }
 
     public sealed class EvOwnerService : IEvOwnerService
@@ -35,10 +36,10 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
         // ---------------- Admin ----------------
         public async Task<EvOwnerViewDto> AdminCreateAsync(EvOwnerCreateDto dto, string actorUserId)
         {
-            dto.Nic   = dto.Nic.Trim();
+            dto.Nic = dto.Nic.Trim();
             dto.Email = dto.Email.Trim().ToLowerInvariant();
             dto.FullName = dto.FullName?.Trim() ?? string.Empty;
-            dto.Phone    = dto.Phone?.Trim() ?? string.Empty;
+            dto.Phone = dto.Phone?.Trim() ?? string.Empty;
 
             if (await _owners.ExistsNicAsync(dto.Nic))
                 throw new InvalidOperationException("NIC is already registered.");
@@ -88,9 +89,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
         public async Task<EvOwnerViewDto> AdminUpdateAsync(string nic, EvOwnerUpdateDto dto, string actorUserId)
         {
-            dto.Email    = dto.Email.Trim().ToLowerInvariant();
+            dto.Email = dto.Email.Trim().ToLowerInvariant();
             dto.FullName = dto.FullName?.Trim() ?? string.Empty;
-            dto.Phone    = dto.Phone?.Trim() ?? string.Empty;
+            dto.Phone = dto.Phone?.Trim() ?? string.Empty;
 
             var owner = await _owners.GetByNicAsync(nic) ?? throw new KeyNotFoundException("Owner not found.");
 
@@ -101,8 +102,8 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             }
 
             owner.FullName = dto.FullName;
-            owner.Email    = dto.Email;
-            owner.Phone    = dto.Phone;
+            owner.Email = dto.Email;
+            owner.Phone = dto.Phone;
             await _owners.UpdateAsync(owner);
 
             // Keep auth profile in sync (login remains NIC)
@@ -111,7 +112,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             {
                 auth.FullName = owner.FullName;
                 auth.Username = nic; // NIC stays the username
-                auth.Phone    = owner.Phone;
+                auth.Phone = owner.Phone;
                 await _users.UpdateAsync(auth);
             }
 
@@ -149,9 +150,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
         public async Task<(EvOwnerViewDto profile, bool emailChanged)> SelfUpdateAsync(string nicFromToken, EvOwnerUpdateDto dto)
         {
-            dto.Email    = dto.Email.Trim().ToLowerInvariant();
+            dto.Email = dto.Email.Trim().ToLowerInvariant();
             dto.FullName = dto.FullName?.Trim() ?? string.Empty;
-            dto.Phone    = dto.Phone?.Trim() ?? string.Empty;
+            dto.Phone = dto.Phone?.Trim() ?? string.Empty;
 
             var owner = await _owners.GetByNicAsync(nicFromToken) ?? throw new KeyNotFoundException("Owner not found.");
             if (!owner.IsActive)
@@ -162,8 +163,8 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
                 throw new InvalidOperationException("Email is already in use.");
 
             owner.FullName = dto.FullName;
-            owner.Email    = dto.Email;
-            owner.Phone    = dto.Phone;
+            owner.Email = dto.Email;
+            owner.Phone = dto.Phone;
             await _owners.UpdateAsync(owner);
 
             // Keep auth profile in sync for convenience (login remains NIC)
@@ -171,7 +172,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             if (auth is not null)
             {
                 auth.FullName = owner.FullName;
-                auth.Phone    = owner.Phone;
+                auth.Phone = owner.Phone;
                 await _users.UpdateAsync(auth);
             }
 
@@ -196,5 +197,6 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             CreatedAtUtc = o.CreatedAtUtc,
             UpdatedAtUtc = o.UpdatedAtUtc
         };
+
     }
 }

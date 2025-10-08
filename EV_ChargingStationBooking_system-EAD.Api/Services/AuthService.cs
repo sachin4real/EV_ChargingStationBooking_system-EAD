@@ -97,6 +97,14 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
             var user = await _repo.GetByUsernameAsync(username) ?? throw new UnauthorizedAccessException("Invalid credentials.");
             if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials.");
+
+            if (user.Role == Role.EvOwner)
+            {
+                var nic = user.OwnerNic ?? user.Username;
+                var owner = await _owners.GetByNicAsync(nic);
+                if (owner is null || !owner.IsActive)
+                    throw new UnauthorizedAccessException("Owner account is Deactivated. Please Contact Backoffice");
+            }
             return user;
         }
 
