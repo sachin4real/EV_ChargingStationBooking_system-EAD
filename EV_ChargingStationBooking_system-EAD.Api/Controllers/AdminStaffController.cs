@@ -43,9 +43,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
             // 1) Create via AuthService (BCrypt inside)
             var created = await _auth.RegisterStaffAsync(new RegisterStaffDto
             {
-                Email    = dto.Email,
+                Email = dto.Email,
                 Password = dto.Password,
-                Role     = dto.Role
+                Role = dto.Role
             });
 
             // 2) Save optional profile fields + station assignment
@@ -75,13 +75,13 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
             // 3) Return a view DTO
             var view = new StaffUserViewDto
             {
-                Id           = created.Id,
-                Email        = created.Username,
-                Role         = created.Role,
-                FullName     = created.FullName,
-                Phone        = created.Phone,
+                Id = created.Id,
+                Email = created.Username,
+                Role = created.Role,
+                FullName = created.FullName,
+                Phone = created.Phone,
                 CreatedAtUtc = created.CreatedAtUtc,
-                StationIds   = created.StationIds?.ToList() ?? new List<string>()
+                StationIds = created.StationIds?.ToList() ?? new List<string>()
             };
             return Ok(view);
         }
@@ -90,5 +90,19 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Controllers
         [HttpPatch("{id}")]
         public async Task<ActionResult> Update([FromRoute] string id, [FromBody] StaffUpdateDto dto)
             => Ok(await _svc.UpdateAsync(id, dto));
+            
+        [HttpPost("{id}/activate")]
+        public async Task<ActionResult> Activate([FromRoute] string id)
+        {
+            await _users.SetActiveAsync(id, true);
+            return NoContent();
+        }
+
+        [HttpPost("{id}/deactivate")]
+        public async Task<ActionResult> Deactivate([FromRoute] string id)
+        {
+            await _users.SetActiveAsync(id, false);
+            return NoContent();
+        }
     }
 }

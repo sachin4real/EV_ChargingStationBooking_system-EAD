@@ -94,7 +94,9 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
 
         public async Task<AuthUser> ValidateCredentialsAsync(string username, string password)
         {
-            var user = await _repo.GetByUsernameAsync(username) ?? throw new UnauthorizedAccessException("Invalid credentials.");
+            var user = await _repo.GetByUsernameAsync(username)
+                ?? throw new UnauthorizedAccessException("Invalid credentials.");
+
             if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials.");
 
@@ -103,10 +105,18 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Services
                 var nic = user.OwnerNic ?? user.Username;
                 var owner = await _owners.GetByNicAsync(nic);
                 if (owner is null || !owner.IsActive)
-                    throw new UnauthorizedAccessException("Owner account is Deactivated. Please Contact Backoffice");
+                    throw new UnauthorizedAccessException("Owner account is deactivated. Please contact Backoffice.");
             }
+            else
+            {
+                // Backoffice / Operator must be active to log in
+                if (user.IsActive == false)
+                    throw new UnauthorizedAccessException("User account is deactivated. Please contact Backoffice.");
+            }
+
             return user;
         }
+
 
         public async Task EnsureSeedBackofficeAsync()
         {
