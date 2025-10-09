@@ -16,6 +16,15 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
             string? nic, string? stationId, string? status, bool? futureOnly,
             int skip, int take);
 
+        // NEW: search by multiple stations with optional time window
+        Task<(IReadOnlyList<Booking> items, long total)> SearchManyAsync(
+            IReadOnlyCollection<string> stationIds,
+            string? status,
+            DateTime? fromUtc,
+            DateTime? toUtc,
+            int skip,
+            int take);
+
         // Owner constraints
         Task<bool> ExistsForOwnerAsync(string nic);
         Task<bool> ExistsFutureForOwnerAsync(string nic, DateTime utcNow);
@@ -94,6 +103,40 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
             return (items, total);
         }
 
+        // ---------- NEW ----------
+        public async Task<(IReadOnlyList<Booking> items, long total)> SearchManyAsync(
+            IReadOnlyCollection<string> stationIds,
+            string? status,
+            DateTime? fromUtc,
+            DateTime? toUtc,
+            int skip,
+            int take)
+        {
+            if (stationIds == null || stationIds.Count == 0)
+                return (Array.Empty<Booking>(), 0);
+
+            var f = Builders<Booking>.Filter.In(b => b.StationId, stationIds);
+
+            if (!string.IsNullOrWhiteSpace(status))
+                f &= Builders<Booking>.Filter.Eq(b => b.Status, status);
+
+            if (fromUtc.HasValue)
+                f &= Builders<Booking>.Filter.Gte(b => b.StartTimeUtc, fromUtc.Value);
+
+            if (toUtc.HasValue)
+                f &= Builders<Booking>.Filter.Lte(b => b.EndTimeUtc, toUtc.Value);
+
+            var total = await _col.CountDocumentsAsync(f);
+            var items = await _col.Find(f)
+                                  .SortBy(b => b.StartTimeUtc)
+                                  .Skip(skip)
+                                  .Limit(take)
+                                  .ToListAsync();
+
+            return (items, total);
+        }
+        // -------------------------
+
         public Task<bool> ExistsForOwnerAsync(string nic)
             => _col.Find(b => b.Nic == nic).Limit(1).AnyAsync();
 
@@ -116,7 +159,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
             var overlap = Builders<Booking>.Filter.And(
                 Builders<Booking>.Filter.Eq(b => b.StationId, stationId),
                 Builders<Booking>.Filter.In(b => b.Status, new[] { BookingStatus.Pending, BookingStatus.Approved }),
-                // overlap condition: (start < existing.End) && (end > existing.Start)
+                // overlap: (start < existing.End) && (end > existing.Start)
                 Builders<Booking>.Filter.Lt(b => b.StartTimeUtc, endUtc),
                 Builders<Booking>.Filter.Gt(b => b.EndTimeUtc, startUtc)
             );

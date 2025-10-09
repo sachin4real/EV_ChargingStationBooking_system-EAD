@@ -10,8 +10,10 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Domain.Entities
 
         public string? OwnerNic { get; set; }
 
-        public string? FullName{ get; set; }
-        public string? Phone { get; set;}
+        public string? FullName { get; set; }
+        public string? Phone { get; set; }
+        
+        public List<string> StationIds { get; set; } = new();
 
     }
 }
