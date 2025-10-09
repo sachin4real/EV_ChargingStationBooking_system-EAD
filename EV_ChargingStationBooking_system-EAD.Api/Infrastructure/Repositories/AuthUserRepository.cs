@@ -18,6 +18,8 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
         // NEW: search staff (Backoffice/Operator) with optional role filter + paging
         Task<(IReadOnlyList<AuthUser> items, long total)>
             SearchStaffAsync(string? q, string? role, int skip, int take);
+
+        Task SetActiveAsync(string id, bool isActive); 
     }
 
     public sealed class AuthUserRepository : IAuthUserRepository
@@ -62,7 +64,7 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
             if (!string.IsNullOrWhiteSpace(role))
             {
                 var normalized = role.Equals(Role.Backoffice, StringComparison.OrdinalIgnoreCase) ? Role.Backoffice
-                               : role.Equals(Role.Operator,   StringComparison.OrdinalIgnoreCase) ? Role.Operator
+                               : role.Equals(Role.Operator, StringComparison.OrdinalIgnoreCase) ? Role.Operator
                                : null;
                 if (normalized != null)
                     filter &= Builders<AuthUser>.Filter.Eq(x => x.Role, normalized);
@@ -84,5 +86,13 @@ namespace EV_ChargingStationBooking_system_EAD.Api.Infrastructure.Repositories
                                   .ToListAsync();
             return (items, total);
         }
+        
+            public async Task SetActiveAsync(string id, bool isActive)
+            {
+                var update = Builders<AuthUser>.Update
+                    .Set(x => x.IsActive, isActive)
+                    .Set(x => x.UpdatedAtUtc, DateTime.UtcNow);
+                await _col.UpdateOneAsync(x => x.Id == id, update);
+            }
     }
 }
